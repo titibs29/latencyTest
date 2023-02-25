@@ -1,5 +1,4 @@
 #include <iostream>
-#include <chrono>
 #include <cmath>
 #include <cstring>
 
@@ -14,12 +13,11 @@
 
 int main(int argc, char *argv[])
 {
-    std::chrono::time_point<std::chrono::system_clock> start, end;
+    struct timespec start, end, waitTime = {1, 0};
     long long diff;
     int i, rounds = 5;
     long long sum = 0;
-    long long sleepTime = 1000000000L;            // sleep time in nanosecond
-
+    
     // use the -t option to change the sleep time or use the -r option to change the number of rounds
     if (argc > 1)
     {
@@ -30,7 +28,8 @@ int main(int argc, char *argv[])
                 long long temp = atoll(argv[i+1]);
                 if (temp > 0)
                 {
-                    sleepTime = temp;
+                    waitTime.tv_sec = temp / BILLION;
+                    waitTime.tv_nsec = temp % BILLION;
                 }
             }
             else if (strcmp(argv[i], "-r") == 0)
@@ -46,28 +45,22 @@ int main(int argc, char *argv[])
 
     long long *diffs = new long long[rounds];
 
-    printf("latency test for %lld ns\n", sleepTime);
-
+    printf("latency test for %ld s %ld ns\n", waitTime.tv_sec, waitTime.tv_nsec);
     for (i = 0; i < rounds; i++)
     {   
         // get the start time
-        start = std::chrono::high_resolution_clock::now();
+        clock_gettime(CLOCK_MONOTONIC, &start);
 
-        // sleep
-        #ifdef _WIN32
-        Sleep(sleepTime / 1000000L);
-        #else
-        usleep(sleepTime / 1000L);
-        #endif
+        // wait loop
+        while (end.tv_sec - start.tv_sec < waitTime.tv_sec && end.tv_nsec - start.tv_nsec < waitTime.tv_nsec)
+        {
+            clock_gettime(CLOCK_MONOTONIC, &end);
+        }
 
-        // get the end time
-        end = std::chrono::high_resolution_clock::now();
 
         // calculate the difference in nanoseconds
-        diff = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+        diff = BILLION * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec;
 
-        // remove sleep time in nanosecond
-        diff -= sleepTime;
 
         // print the difference
         printf("latency : %lld ns \n", diff);
@@ -107,7 +100,7 @@ int main(int argc, char *argv[])
     long long stdDev = sqrt(sumOfSquares / rounds);
 
     // calculates the percentage of the average on the sleep time
-    double percentage = ((double)avg * 100.0) / (double)sleepTime;
+    double percentage = ((double)avg * 100.0) / (double)(BILLION * waitTime.tv_sec) + (double)waitTime.tv_nsec;
 
 
     // print the results
