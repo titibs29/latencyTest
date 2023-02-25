@@ -20,7 +20,7 @@ int main(int argc, char *argv[])
     int i;
     long long diffs[ROUNDS];
     long long sum = 0;
-    long long sleepTime = 10000L;            // sleep time in nanosecond
+    long long sleepTime = 1000000000L;            // sleep time in nanosecond
 
     // use the -t option to change the sleep time
     if (argc > 1)
@@ -40,7 +40,7 @@ int main(int argc, char *argv[])
 
         // sleep
         #ifdef _WIN32
-        Sleep(sleepTime / 1000L);
+        Sleep(sleepTime / 1000000L);
         #else
         usleep(sleepTime / 1000L);
         #endif
