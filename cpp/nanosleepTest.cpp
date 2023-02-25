@@ -13,7 +13,6 @@ int main(int argc, char *argv[])
     int i,rounds = 5;
 
     // allocate memory for the differences
-    long long *diffs = new long long[rounds];
     long long sum = 0;
     struct timespec sleepTime = {1,0}; // sleep time in nanosecond
 
@@ -31,16 +30,15 @@ int main(int argc, char *argv[])
             else if (strcmp(argv[i], "-r") == 0)
             {
                 rounds = atoi(argv[i+1]);
-                delete[] diffs;
-                diffs = new long long[rounds];
             }
             else if (strcmp(argv[i], "-h") == 0){
                 printf("usage : %s [-t sleepTime] [-r rounds] \n", argv[0]);
                 return 0;
             }
-
         }
     }
+
+    long long *diffs = new long long[rounds];
 
     printf("latency test for %ld s %ld ns\n", sleepTime.tv_sec, sleepTime.tv_nsec);
 
