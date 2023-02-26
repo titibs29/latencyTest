@@ -55,6 +55,7 @@ int main(int argc, char *argv[])
     {   
         // get the start time
         start = std::chrono::high_resolution_clock::now();
+        end = std::chrono::high_resolution_clock::now();
 
         // wait loop
         while (std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() < waitTime)
