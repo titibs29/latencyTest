@@ -72,14 +72,17 @@ void* pong(void*)
     long long diffs[NUM_PING];
     double percentage = 0;
     volatile char nullwait = 0;         // volatile to prevent the compiler to optimize the loop
+    bool isEmpty = false;
 
     std::cout << "latency test for " << WAIT_TIME << " ns\n";
 
     // get the first ping time
-    while (ping_queue.empty())
+    isEmpty = ping_queue.empty();
+
+    while (isEmpty)
     {   
         // wait
-        nullwait = 1;
+        isEmpty = ping_queue.empty();    
     }
 
     // get the ping time
@@ -97,10 +100,11 @@ void* pong(void*)
         printf("wait for the next ping \n");
 
         // wait for the next ping
+        isEmpty = ping_queue.empty();    
         while (ping_queue.empty())
         {
             // wait
-            nullwait += 1;
+            isEmpty = ping_queue.empty();    
         }
 
         printf("next ping received \n");
