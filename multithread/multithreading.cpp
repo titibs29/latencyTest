@@ -68,6 +68,9 @@ void *pong(void *threadid)
     std::chrono::time_point<std::chrono::high_resolution_clock> actual, last;
     long long average = 0, min = LLONG_MAX, max = 0, std_dev = 0;
     long long diffs[NUM_PING];
+    double percentage = 0;
+
+    std::cout << "latency test for " << WAIT_TIME << " ns\n";
 
     // get the first ping time
     while (ping_queue.empty())
@@ -142,13 +145,16 @@ void *pong(void *threadid)
     std_dev /= NUM_PING;
     std_dev = sqrt(std_dev);
 
+    // calculate the percentage
+    percentage = (double)max / (double)WAIT_TIME * 100;
+
 
     // print the average, min, max and standard deviation, in the ping command style
     std::cout << "--- latency statistics ---\n";
-    std::cout << "Packets: Sent = " << NUM_PING << ", Lost = 0 (0% loss),\n";
-    std::cout << "Approximate round trip times in milli-seconds:\n";
-    std::cout << "    Minimum = " << min << "ms, Maximum = " << max << "ms, Average = " << average << "ms\n";
-    std::cout << "Standard deviation = " << std_dev << "ms\n";
+    std::cout << "%d rounds completed" << NUM_PING << "\n";
+    std::cout << " min / max / avg / mdev (nanosecond) :\n";
+    std::cout << min << " / " << max << " / " << average << " / " << std_dev << "\n";
+    std::cout <<"max over sleep time percentage : " << percentage << "% \n";
 
     pthread_exit(NULL);
 
