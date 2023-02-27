@@ -53,6 +53,7 @@ void *ping(void * )
         // add the ping to the ping time array
         ping_mutex.lock();
         ping_queue.push(end);
+        // print ping_queue.empty
         ping_mutex.unlock();
     }
 
@@ -63,13 +64,14 @@ void *ping(void * )
 }
 
 // pong thread
-void *pong(void *)
+void* pong(void*)
 {
 
     std::chrono::time_point<std::chrono::high_resolution_clock> actual, last;
     long long average = 0, min = LLONG_MAX, max = 0, std_dev = 0;
     long long diffs[NUM_PING];
     double percentage = 0;
+    volatile char nullwait = 0;         // volatile to prevent the compiler to optimize the loop
 
     std::cout << "latency test for " << WAIT_TIME << " ns\n";
 
@@ -77,18 +79,13 @@ void *pong(void *)
     while (ping_queue.empty())
     {   
         // wait
+        nullwait = 1;
     }
 
     // get the ping time
-    ping_mutex.lock();
     actual = ping_queue.front();
-
-    while(!ping_queue.empty())
-    {
-        ping_queue.pop();
-
-    }
-    // ping_queue.pop();
+    ping_mutex.lock();
+    ping_queue.pop();
     ping_mutex.unlock();
 
     // loop until the number of ping is reached
@@ -96,22 +93,26 @@ void *pong(void *)
     {   
         // fill the last ping time
         last = actual;
-        
+
+        printf("wait for the next ping \n");
 
         // wait for the next ping
         while (ping_queue.empty())
         {
             // wait
+            nullwait += 1;
         }
 
+        printf("next ping received \n");
+
         // get the ping time
-        ping_mutex.lock();
         actual = ping_queue.back();
-        while(!ping_queue.empty())
-        {
-            ping_queue.pop();
-        }
+        ping_mutex.lock();
+        ping_queue.pop();
         ping_mutex.unlock();
+    
+
+        std::cout << "actual ping time : " << std::chrono::duration_cast<std::chrono::nanoseconds>(actual.time_since_epoch()).count() << "\n";
 
         // calculate diff
         diffs[i] = std::chrono::duration_cast<std::chrono::nanoseconds>(actual-last).count()- WAIT_TIME;
@@ -173,6 +174,7 @@ int main()
         std::cout << "Error:unable to create thread," << rc << "\n";
         exit(-1);
     }
+    std::cout << "ping thread created\n";
 
     // create the pong thread
     rc = pthread_create(&threads[1], NULL, pong, (void *)1);
@@ -182,9 +184,16 @@ int main()
         exit(-1);
     }
 
+    std::cout << "pong thread created\n";
+
     // wait for the threads to finish
     pthread_join(threads[0], NULL);
+
+    std::cout << "ping thread finished\n";
+
     pthread_join(threads[1], NULL);
+
+    std::cout << "threads finished\n";
 
     return 0;
 }
