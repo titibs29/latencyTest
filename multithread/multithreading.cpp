@@ -6,6 +6,7 @@
 #include <cmath>
 #include <chrono>
 #include <pthread.h>
+#include <climits>
 #include <iostream>
 #include <mutex>
 #include <queue>
@@ -22,7 +23,7 @@ std::queue<std::chrono::time_point<std::chrono::high_resolution_clock>> ping_que
 
 
 // ping thread
-void *ping(void *threadid)
+void *ping(void * )
 {   
     std::chrono::time_point<std::chrono::high_resolution_clock> start, end;
 
@@ -62,7 +63,7 @@ void *ping(void *threadid)
 }
 
 // pong thread
-void *pong(void *threadid)
+void *pong(void *)
 {
 
     std::chrono::time_point<std::chrono::high_resolution_clock> actual, last;
@@ -74,8 +75,8 @@ void *pong(void *threadid)
 
     // get the first ping time
     while (ping_queue.empty())
-    {
-
+    {   
+        // wait
     }
 
     // get the ping time
@@ -101,7 +102,6 @@ void *pong(void *threadid)
         while (ping_queue.empty())
         {
             // wait
-
         }
 
         // get the ping time
