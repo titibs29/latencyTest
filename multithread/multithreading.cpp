@@ -4,68 +4,190 @@
 // of the ping
 
 #include <pthread.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
+#include <ctime>
 #include <mutex>
+#include <iostream>
+#include <queue>
+#include <cmath>
 
-#define BILLION 1000000000L
+#define NUM_THREADS 2
+#define NUM_PING 5
+#define WAIT_TIME_SEC 1
+#define WAIT_TIME_NSEC 0
 
-// the thread function
-void *ping(void *arg)
-{
-    // define the variables
-    struct timespec start, end, waitTime;
+// mutex to protect the ping variable
+std::mutex ping_mutex;
 
-    // set the wait time
-    waitTime.tv_sec = 1;
-    waitTime.tv_nsec = 0;
+// ping timespec queue
+std::queue<struct timespec> ping_queue;
 
-    // while loop
-    while (1)
+
+// ping thread
+void *ping(void *threadid)
+{   
+    struct timespec start, end;
+
+    printf("ping thread started\n");
+
+    // get the start time
+    clock_gettime(CLOCK_REALTIME, &start);
+
+    // add the first ping to the pingtime array
+    ping_mutex.lock();
+    ping_queue.push(start);
+    ping_mutex.unlock();
+
+    printf("ping thread setup done, entering loop\n");
+
+    // loop until the number of ping is reached
+    for (int i = 0; i < NUM_PING; i++)
     {
-        // get the start and end time
-        clock_gettime(CLOCK_MONOTONIC, &start);
-        clock_gettime(CLOCK_MONOTONIC, &end);
+        // get the start time
+        clock_gettime(CLOCK_REALTIME, &start);
+        clock_gettime(CLOCK_REALTIME, &end);
 
-        // wait loop
-        while ((end.tv_sec - start.tv_sec) < waitTime.tv_sec && (end.tv_nsec - start.tv_nsec) < waitTime.tv_nsec)
+        // wait for the ping to be done
+        clock_gettime(CLOCK_REALTIME, &end);
+        while (end.tv_sec - start.tv_sec < WAIT_TIME_SEC || end.tv_nsec - start.tv_nsec < WAIT_TIME_NSEC)
         {
-            clock_gettime(CLOCK_MONOTONIC, &end);
+            clock_gettime(CLOCK_REALTIME, &end);
         }
-        // send the result of the ping to the other thread
 
+        // add the ping to the pingtime array
+        ping_mutex.lock();
+        ping_queue.push(end);
+        ping_mutex.unlock();
+
+        printf("ping %d sent\n", i);
     }
-        
+
+    printf("ping thread ended\n");
+
+    pthread_exit(NULL);
+
+    return NULL;
+
 }
 
-// the second thread function
-void *pong(void *arg)
+// pong thread
+void *pong(void *threadid)
 {
-    // while loop
-    while (1)
+    printf("pong thread started\n");
+
+    struct timespec actual, last, diff, diffs[NUM_PING];
+    double average = 0;
+    double min = 0;
+    double max = 0;
+    double std_dev = 0;
+
+    printf("pong thread setup done\n");
+
+    // get the first ping time
+    while (ping_queue.empty())
     {
-        // get the result of the ping from the other thread
-        // print the result of the ping
+
     }
+
+    // get the ping time
+    ping_mutex.lock();
+    actual = ping_queue.front();
+    ping_queue.pop();
+
+    printf("first ping recieved, entering loop\n");
+    
+    // loop until the number of ping is reached
+    for (int i = 0; i < NUM_PING; i++)
+    {   
+        // fill the last ping time
+        last = actual;
+
+        // wait for the ping to be done
+        while (ping_queue.empty())
+        {
+    
+        }
+
+        printf("ping %d recieved\n", i);
+
+        // get the ping time
+        ping_mutex.lock();
+        actual = ping_queue.front();
+        ping_queue.pop();
+        ping_mutex.unlock();
+
+        // calculate diff
+        diff.tv_sec = (actual.tv_sec - last.tv_sec) - WAIT_TIME_SEC;
+        diff.tv_nsec = (actual.tv_nsec - last.tv_nsec) - WAIT_TIME_NSEC;
+
+        // print the ping time
+        std::cout << "Reply from ping : " << "Latency = " <<  diff.tv_nsec << "ns\n";
+
+        // add the value to the average
+        average += diff.tv_nsec;
+
+        // add the value to the array
+        diffs[i] = diff;
+
+    }
+
+    // calculate the average
+    average /= NUM_PING;
+
+    // calculate the min, max and standard deviation
+    for (int i = 0; i < NUM_PING; i++)
+    {
+        // calculate the min
+        if (diffs[i].tv_nsec < min)
+        {
+            min = diffs[i].tv_nsec;
+        }
+
+        // calculate the max
+        if (diffs[i].tv_nsec > max)
+        {
+            max = diffs[i].tv_nsec;
+        }
+
+        // calculate the standard deviation
+        std_dev += pow(diffs[i].tv_nsec - average, 2);
+    }
+
+    // print the average, min, max and standard deviation, in the ping command style
+    std::cout << "--- latency statistics ---\n" << std::endl;
+    std::cout << "    Packets: Sent = " << NUM_PING << ", Received = " << NUM_PING << ", Lost = 0 (0% loss)," << std::endl;
+    std::cout << "Approximate round trip times in milli-seconds:" << std::endl;
+    std::cout << "    Minimum = " << min << "ms, Maximum = " << max << "ms, Average = " << average << "ms" << std::endl;
+    std::cout << "Standard deviation = " << std_dev << "ms" << std::endl;
+
+    pthread_exit(NULL);
+
+    return NULL;
 }
 
-int main(int argc, char *argv[])
+int main()
 {
-    // the thread identifier
-    pthread_t thread;
+    pthread_t threads[NUM_THREADS];
+    int rc;
 
-    // create the first thread
-    if (pthread_create(&thread, NULL, ping, NULL))
+    // create the ping thread
+    rc = pthread_create(&threads[0], NULL, ping, (void *)0);
+    if (rc)
     {
-        fprintf(stderr, "Error creating thread\n");
-        return 1;
+        std::cout << "Error:unable to create thread," << rc << std::endl;
+        exit(-1);
     }
 
-    // create the second thread
-    if (pthread_create(&thread, NULL, pong, NULL))
+    // create the print thread
+    rc = pthread_create(&threads[1], NULL, pong, (void *)1);
+    if (rc)
     {
-        fprintf(stderr, "Error creating thread\n");
-        return 1;
+        std::cout << "Error:unable to create thread," << rc << std::endl;
+        exit(-1);
     }
 
+    // wait for the threads to finish
+    pthread_join(threads[0], NULL);
+    pthread_join(threads[1], NULL);
+
+    return 0;
+}
