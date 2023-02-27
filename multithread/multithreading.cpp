@@ -10,7 +10,7 @@
 #include <queue>
 #include <cmath>
 
-#define NUM_THREADS 2
+#define NUM_THREADS 3
 #define NUM_PING 5
 #define WAIT_TIME_SEC 1
 #define WAIT_TIME_NSEC 0
@@ -169,6 +169,8 @@ int main()
     pthread_t threads[NUM_THREADS];
     int rc;
 
+    printf("creating thread\n");
+
     // create the ping thread
     rc = pthread_create(&threads[0], NULL, ping, (void *)0);
     if (rc)
@@ -177,13 +179,17 @@ int main()
         exit(-1);
     }
 
-    // create the print thread
+    printf("ping thread created\n");
+
+    // create the pong thread
     rc = pthread_create(&threads[1], NULL, pong, (void *)1);
     if (rc)
     {
         std::cout << "Error:unable to create thread," << rc << std::endl;
         exit(-1);
     }
+
+    printf("pong thread created\n");
 
     // wait for the threads to finish
     pthread_join(threads[0], NULL);
