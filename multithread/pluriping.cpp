@@ -4,6 +4,7 @@
 #include <mutex>
 #include <queue>
 #include <cstring>
+#include <iomanip>
 
 void ping(int tid, int rounds, long long int sleep_time, std::mutex &ping_mutex, std::queue <std::chrono::time_point<std::chrono::high_resolution_clock>> &ping_queue, std::queue <int> &ping_id_queue);
 
@@ -79,6 +80,7 @@ int main(int argc, char *argv[])
     long long int *min = new long long int[nb_threads];
     long long int *max = new long long int[nb_threads];
     long long int *avg = new long long int[nb_threads];
+    double *percent = new double[nb_threads];
 
     
 
@@ -155,11 +157,16 @@ int main(int argc, char *argv[])
         }
         avg[i] /= rounds;
 
+        // calculate max in percent
+        percent[i] = ((double)max[i] * 100.0) / (double)sleep_time;
+
         // print the min, max and average ping time
-        std::cout << "--- Thread " << i << " statistics ---\n";
+        std::cout << "\n--- Thread " << i << " statistics ---\n";
         std::cout << "Min / max / avg (ns)\n";
-        std::cout << min[i] << " / " << max[i] << " / " << avg[i] << "\n\n";
-        
+        std::cout << min[i] << " / " << max[i] << " / " << avg[i] << "\n";
+        std::cout << std::fixed;
+        std::cout << std::setprecision(6);
+        std::cout << "Max in percent : " << percent[i] << "%\n";     
     }
     // join the threads
     for(int i = 0; i < nb_threads; i++)
@@ -175,6 +182,7 @@ int main(int argc, char *argv[])
     delete[] min;
     delete[] max;
     delete[] avg;
+    delete[] percent;
     
     return 0;
 }
