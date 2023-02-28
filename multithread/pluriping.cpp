@@ -32,14 +32,29 @@ int main(int argc, char *argv[])
             if(strcmp(argv[i], "-t") == 0)
             {
                 sleep_time = std::stoll(argv[i+1]);
+                if (sleep_time < 1)
+                {
+                    std::cout << "Error: the wait time must be greater than 0\n";
+                    return 1;
+                }
             }
             else if(strcmp(argv[i], "-r") == 0)
             {
                 rounds = std::stoi(argv[i+1]);
+                if (rounds < 1)
+                {
+                    std::cout << "Error: the number of rounds must be greater than 0\n";
+                    return 1;
+                }
             }
             else if(strcmp(argv[i], "-n") == 0)
             {
                 nb_threads = std::stoi(argv[i+1]);
+                if (nb_threads < 1)
+                {
+                    std::cout << "Error: the number of threads must be greater than 0\n";
+                    return 1;
+                }
             }
             else if(strcmp(argv[i], "-h") == 0)
             {
