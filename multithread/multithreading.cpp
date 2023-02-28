@@ -72,17 +72,15 @@ void* pong(void*)
     long long diffs[NUM_PING];
     double percentage = 0;
     volatile char nullwait = 0;         // volatile to prevent the compiler to optimize the loop
-    bool isEmpty = false;
 
-    std::cout << "latency test for " << WAIT_TIME << " ns\n";
+    std::cout << "--- RT thread latency test for " << WAIT_TIME << " ns ---\n";
 
     // get the first ping time
-    isEmpty = ping_queue.empty();
-
-    while (isEmpty)
+    while (ping_queue.empty())
     {   
         // wait
-        isEmpty = ping_queue.empty();    
+        nullwait = 0;
+        
     }
 
     // get the ping time
@@ -97,26 +95,19 @@ void* pong(void*)
         // fill the last ping time
         last = actual;
 
-        printf("wait for the next ping \n");
-
-        // wait for the next ping
-        isEmpty = ping_queue.empty();    
+        // wait for the next ping   
         while (ping_queue.empty())
         {
             // wait
-            isEmpty = ping_queue.empty();    
-        }
+            std::cout << "";   
 
-        printf("next ping received \n");
+        }
 
         // get the ping time
         actual = ping_queue.back();
         ping_mutex.lock();
         ping_queue.pop();
         ping_mutex.unlock();
-    
-
-        std::cout << "actual ping time : " << std::chrono::duration_cast<std::chrono::nanoseconds>(actual.time_since_epoch()).count() << "\n";
 
         // calculate diff
         diffs[i] = std::chrono::duration_cast<std::chrono::nanoseconds>(actual-last).count()- WAIT_TIME;
@@ -156,7 +147,7 @@ void* pong(void*)
 
     // print the average, min, max and standard deviation, in the ping command style
     std::cout << "--- latency statistics ---\n";
-    std::cout << "%d rounds completed" << NUM_PING << "\n";
+    std::cout << NUM_PING << " rounds completed" << "\n";
     std::cout << " min / max / avg / mdev (nanosecond) :\n";
     std::cout << min << " / " << max << " / " << average << " / " << std_dev << "\n";
     std::cout <<"max over sleep time percentage : " << percentage << "% \n";
@@ -178,7 +169,6 @@ int main()
         std::cout << "Error:unable to create thread," << rc << "\n";
         exit(-1);
     }
-    std::cout << "ping thread created\n";
 
     // create the pong thread
     rc = pthread_create(&threads[1], NULL, pong, (void *)1);
@@ -188,16 +178,9 @@ int main()
         exit(-1);
     }
 
-    std::cout << "pong thread created\n";
-
     // wait for the threads to finish
     pthread_join(threads[0], NULL);
-
-    std::cout << "ping thread finished\n";
-
     pthread_join(threads[1], NULL);
-
-    std::cout << "threads finished\n";
 
     return 0;
 }
