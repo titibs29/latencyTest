@@ -55,7 +55,7 @@ int main(int argc, char *argv[])
 
         // sleep
         #ifdef _WIN32
-        Sleep(sleepTime / 1000000L);
+        Sleep(static_cast<long unsigned int>(sleepTime / 1000000L));
         #else
         usleep(sleepTime / 1000L);
         #endif
@@ -104,16 +104,16 @@ int main(int argc, char *argv[])
     {
         sumOfSquares += (diffs[i] - avg) * (diffs[i] - avg);
     }
-    long long stdDev = sqrt(sumOfSquares / rounds);
+    double stdDev = sqrt(static_cast<double>(sumOfSquares / rounds));
 
     // calculates the percentage of the average on the sleep time
-    double percentage = ((double)avg * 100.0) / (double)sleepTime;
+    double percentage = (static_cast<double>(avg) * 100.0) / static_cast<double>(sleepTime);
 
 
     // print the results
     printf(" --- latency results --- \n");
     printf(" %d rounds completed\n", rounds);
-    printf("latency min / max / avg / mdev (nanosecond) : %lld / %lld / %lld / %lld \n", min, max, avg, stdDev);
+    printf("latency min / max / avg / mdev (nanosecond) : %lld / %lld / %lld / %.0f \n", min, max, avg, stdDev);
     printf("avg percentage over sleep time : %.3f %% \n", percentage);
 
     delete[] diffs;

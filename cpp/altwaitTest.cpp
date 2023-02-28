@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
                 if (temp > 0)
                 {
                     waitTime.tv_sec = temp / BILLION;
-                    waitTime.tv_nsec = temp % BILLION;
+                    waitTime.tv_nsec = static_cast<long>(temp) % BILLION;
                 }
             }
             else if (strcmp(argv[i], "-r") == 0)
@@ -45,7 +45,7 @@ int main(int argc, char *argv[])
 
     long long *diffs = new long long[rounds];
 
-    printf("latency test for %ld s %ld ns\n", waitTime.tv_sec, waitTime.tv_nsec);
+    printf("latency test for %lld s %ld ns\n", waitTime.tv_sec, waitTime.tv_nsec);
     for (i = 0; i < rounds; i++)
     {   
         // get the start time
@@ -97,10 +97,10 @@ int main(int argc, char *argv[])
     {
         sumOfSquares += (diffs[i] - avg) * (diffs[i] - avg);
     }
-    long long stdDev = sqrt(sumOfSquares / rounds);
+    long long stdDev = static_cast<long long>(sqrt(static_cast<double>(sumOfSquares / static_cast<long long>(rounds))));
 
     // calculates the percentage of the average on the sleep time
-    double percentage = ((double)avg * 100.0) / (double)(BILLION * waitTime.tv_sec) + (double)waitTime.tv_nsec;
+    double percentage = (static_cast<double>(avg) * 100.0) / static_cast<double>(BILLION * waitTime.tv_sec) + static_cast<double>(waitTime.tv_nsec);
 
 
     // print the results

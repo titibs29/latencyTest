@@ -67,6 +67,8 @@ int main(int argc, char *argv[])
         // calculate the difference in nanoseconds
         diff = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
 
+        std::cout << "diff: " << diff << std::endl;
+
         // remove sleep time in nanosecond
         diff -= waitTime;
 
@@ -105,16 +107,16 @@ int main(int argc, char *argv[])
     {
         sumOfSquares += (diffs[i] - avg) * (diffs[i] - avg);
     }
-    long long stdDev = sqrt(sumOfSquares / rounds);
+    double stdDev = sqrt(static_cast<double>(sumOfSquares / rounds));
 
     // calculates the percentage of the average on the sleep time
-    double percentage = ((double)avg * 100.0) / (double)waitTime;
+    double percentage = (static_cast<double>(avg) * 100.0) / static_cast<double>(waitTime);
 
 
     // print the results
     printf(" --- latency results --- \n");
     printf(" %d rounds completed\n", rounds);
-    printf("latency min / max / avg / mdev (nanosecond) : %lld / %lld / %lld / %lld \n", min, max, avg, stdDev);
+    printf("latency min / max / avg / mdev (nanosecond) : %lld / %lld / %lld / %.0f \n", min, max, avg, stdDev);
     printf("avg percentage over sleep time : %f %% \n", percentage);
 
     delete[] diffs;
