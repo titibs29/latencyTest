@@ -18,7 +18,7 @@ int main(int argc, char *argv[])
 
     
     int rounds = 5;
-    long long unsigned int sleep_time = 1000000000; // 1 second
+    long long int sleep_time = 1000000000; // 1 second
     int nb_threads = 2;
 
 
@@ -132,7 +132,7 @@ int main(int argc, char *argv[])
     {
         // calculate the min, max and average ping time
         min[i] = diff_queues[i].front();
-        max[i] = diff_queues[i].front();
+        max[i] = 0;
         avg[i] = 0;
         for(int j = 0; j < rounds; j++)
         {
