@@ -117,5 +117,6 @@ int main(int argc, char *argv[])
     printf("latency min / max / avg / mdev (nanosecond) : %lld / %lld / %lld / %lld \n", min, max, avg, stdDev);
     printf("avg percentage over sleep time : %f %% \n", percentage);
 
+    delete[] diffs;
 
 }
