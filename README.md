@@ -2,6 +2,7 @@
 ---
 
 This repos is made to test the latency of a computer.
+code created with VS Code.
 
 ## source code
 --- 
