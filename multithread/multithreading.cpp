@@ -10,10 +10,9 @@
 #include <iostream>
 #include <mutex>
 #include <queue>
+#include <cstring>
 
 #define NUM_THREADS 2
-#define NUM_PING 5
-#define WAIT_TIME 1000000000L
 
 // mutex to protect the ping variable
 std::mutex ping_mutex;
@@ -21,9 +20,12 @@ std::mutex ping_mutex;
 // ping timespec queue
 std::queue<std::chrono::time_point<std::chrono::high_resolution_clock>> ping_queue;
 
+long long wait_time = 1000000000;   // 1 second
+int rounds = 5;                     // 5 rounds
+
 
 // ping thread
-void *ping(void * )
+void *ping(void* )
 {   
     std::chrono::time_point<std::chrono::high_resolution_clock> start, end;
 
@@ -37,7 +39,7 @@ void *ping(void * )
     ping_mutex.unlock();
 
     // loop until the number of ping is reached
-    for (int i = 0; i < NUM_PING; i++)
+    for (int i = 0; i < rounds; i++)
     {
         // get the start time
         start = std::chrono::high_resolution_clock::now();
@@ -45,7 +47,7 @@ void *ping(void * )
         // wait for the ping to be done
         end = std::chrono::high_resolution_clock::now();
 
-        while (std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() < WAIT_TIME)
+        while (std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() < wait_time)
         {
             end = std::chrono::high_resolution_clock::now();
         }
@@ -64,22 +66,21 @@ void *ping(void * )
 }
 
 // pong thread
-void* pong(void*)
+void* pong(void* )
 {
 
     std::chrono::time_point<std::chrono::high_resolution_clock> actual, last;
     long long average = 0, min = LLONG_MAX, max = 0, std_dev = 0;
-    long long diffs[NUM_PING];
+    long long *diffs = new long long [rounds];
     double percentage = 0;
-    volatile char nullwait = 0;         // volatile to prevent the compiler to optimize the loop
 
-    std::cout << "--- RT thread latency test for " << WAIT_TIME << " ns ---\n";
+    std::cout << "--- RT thread latency test for " << wait_time << " ns ---\n";
 
     // get the first ping time
     while (ping_queue.empty())
     {   
         // wait
-        nullwait = 0;
+        std::cout << "";
         
     }
 
@@ -90,7 +91,7 @@ void* pong(void*)
     ping_mutex.unlock();
 
     // loop until the number of ping is reached
-    for (int i = 0; i < NUM_PING; i++)
+    for (int i = 0; i < rounds; i++)
     {   
         // fill the last ping time
         last = actual;
@@ -110,7 +111,7 @@ void* pong(void*)
         ping_mutex.unlock();
 
         // calculate diff
-        diffs[i] = std::chrono::duration_cast<std::chrono::nanoseconds>(actual-last).count()- WAIT_TIME;
+        diffs[i] = std::chrono::duration_cast<std::chrono::nanoseconds>(actual-last).count()- wait_time;
 
         // print the ping time
         std::cout << "Reply from ping : Latency = " << diffs[i] << "ns\n";
@@ -131,36 +132,63 @@ void* pong(void*)
     }
 
     // calculate the average
-    average /= NUM_PING;
+    average /= rounds;
 
     // calculate the standard deviation
-    for (int i = 0; i < NUM_PING; i++)
+    for (int i = 0; i < rounds; i++)
     {
         std_dev += (diffs[i] - average) * (diffs[i] - average);
     }
-    std_dev /= NUM_PING;
+    std_dev /= rounds;
     std_dev = sqrt(std_dev);
 
     // calculate the percentage
-    percentage = (double)max / (double)WAIT_TIME * 100;
+    percentage = (double)max / (double)wait_time * 100;
 
 
     // print the average, min, max and standard deviation, in the ping command style
     std::cout << "--- latency statistics ---\n";
-    std::cout << NUM_PING << " rounds completed" << "\n";
+    std::cout << rounds << " rounds completed" << "\n";
     std::cout << " min / max / avg / mdev (nanosecond) :\n";
     std::cout << min << " / " << max << " / " << average << " / " << std_dev << "\n";
     std::cout <<"max over sleep time percentage : " << percentage << "% \n";
+
+    delete[] diffs;
 
     pthread_exit(NULL);
 
     return NULL;
 }
 
-int main()
+int main( int argc, char *argv[])
 {
     pthread_t threads[NUM_THREADS];
     int rc;
+
+    // use the -t option to set the wait time, -r to set the number of ping
+    // the default value are 1000000000 nanosecond and 5 ping
+    if (argc > 1)
+    {
+        for (int i = 1; i < argc; i++)
+        {
+            if (strcmp(argv[i], "-t") == 0)
+            {
+                wait_time = atoi(argv[i + 1]) * 1000000000L;
+            }
+            else if (strcmp(argv[i], "-r") == 0)
+            {
+                rounds = atoi(argv[i + 1]);
+            }
+            else if (strcmp(argv[i], "-h") == 0)
+            {
+                std::cout << "Usage : " << argv[0] << " [-t wait_time] [-r rounds]\n";
+                std::cout << "wait_time is in nanosecond, rounds is the number of ping\n";
+                std::cout << "default value are 1 second and 5 ping\n";
+                exit(0);
+            }
+        }
+    }
+
 
     // create the ping thread
     rc = pthread_create(&threads[0], NULL, ping, (void *)0);
