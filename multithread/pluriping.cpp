@@ -1,26 +1,40 @@
-#include <iostream>
-#include <thread>
-#include <chrono>
-#include <mutex>
-#include <queue>
+#include <cmath>
 #include <cstring>
+#include <iostream>
 #include <iomanip>
+#include <queue>
+#include <chrono>
+#include <thread>
+#include <mutex>
 
+
+/// @brief ping function, ping every [sleep_time] ns and stock the ping time in the ping_queue and the ping id in the ping_id_queue
+/// @param tid id of the thread
+/// @param rounds number of ping sent
+/// @param sleep_time wait time between each ping
+/// @param ping_mutex mutex to protect the ping variable
+/// @param ping_queue queue to stock the ping time
+/// @param ping_id_queue queue to stock the ping id
 void ping(unsigned int tid, unsigned int rounds, long long unsigned int sleep_time, std::mutex &ping_mutex, std::queue <std::chrono::time_point<std::chrono::high_resolution_clock>> &ping_queue, std::queue <unsigned int> &ping_id_queue);
 
 
+/// @brief main function
+/// @param argc argument count
+/// @param argv argument vector
+/// @return 
 int main(int argc, char *argv[])
 {
 
     //define variables
-    unsigned int id = 0, i = 0, j = 0;
+    // system variables
+    long long unsigned int id = 0, i = 0, j = 0;
     long long unsigned int diff = 0;
     std::chrono::time_point<std::chrono::high_resolution_clock> start, end;
 
-    
-    long long unsigned int rounds = 5;
-    long long unsigned int sleep_time = 1000000000; // 1 second
-    long long unsigned int nb_threads = 2;
+    // user defined variables
+    long long unsigned int rounds = 5;              // number of ping sent
+    long long unsigned int sleep_time = 1000000000; // wait time between each ping in ns
+    long long unsigned int nb_threads = 2;          // number of threads
 
 
 
@@ -29,6 +43,7 @@ int main(int argc, char *argv[])
     {
         for(i = 1; i < static_cast<unsigned int>(argc); i++)
         {
+            // the t option set the wait time
             if(strcmp(argv[i], "-t") == 0)
             {
                 sleep_time = std::stoull(argv[i+1]);
@@ -38,6 +53,7 @@ int main(int argc, char *argv[])
                     return 1;
                 }
             }
+            // the r option set the number of ping
             else if(strcmp(argv[i], "-r") == 0)
             {
                 rounds = std::stoull(argv[i+1]);
@@ -47,6 +63,7 @@ int main(int argc, char *argv[])
                     return 1;
                 }
             }
+            // the n option set the number of threads
             else if(strcmp(argv[i], "-n") == 0)
             {
                 nb_threads = std::stoull(argv[i+1]);
@@ -56,6 +73,7 @@ int main(int argc, char *argv[])
                     return 1;
                 }
             }
+            // the h option print the help
             else if(strcmp(argv[i], "-h") == 0)
             {
                 std::cout << "Usage: " << argv[0] << " [-t wait_time] [-r rounds] [-n nb_threads]\n";
@@ -66,23 +84,27 @@ int main(int argc, char *argv[])
         }
     }
 
-    // create the ping queue array
+    // create user defined arrays
+
+    // queue to stock the ping times
     std::queue <std::chrono::time_point<std::chrono::high_resolution_clock>> ping_queue;
 
-    //create the ping id queue
+    // queue to stock the ping id
     std::queue <unsigned int> ping_id_queue;
 
     // mutex to protect the ping variable
     std::mutex ping_mutex;
 
-    // create the threads
+    // threads array
     std::thread *threads = new std::thread[nb_threads];
 
-    // create queue to stock the ping times
+    // queue to stock the ping times
     std::queue <long long unsigned int> *diff_queues = new std::queue <long long unsigned int> [nb_threads];
 
-    // create a array to stock last and actual ping times
+    // array to stock the actual ping times
     std::chrono::time_point<std::chrono::high_resolution_clock> *actual = new std::chrono::time_point<std::chrono::high_resolution_clock> [nb_threads];
+
+    // array to stock the last ping times
     std::chrono::time_point<std::chrono::high_resolution_clock> *last = new std::chrono::time_point<std::chrono::high_resolution_clock> [nb_threads];
 
     // fill the array with the default value
@@ -92,16 +114,16 @@ int main(int argc, char *argv[])
         last[i] = std::chrono::time_point<std::chrono::high_resolution_clock>();
     }
 
-    // create the min, max, average and median deviation arrays
+    // create the min, max, average, stdev and percent arrays
     long long unsigned int *min = new long long unsigned int[nb_threads];
     long long unsigned int *max = new long long unsigned int[nb_threads];
     long long unsigned int *avg = new long long unsigned int[nb_threads];
+    double *stdev = new double[nb_threads];
     double *percent = new double[nb_threads];
 
     
 
     // start the threads
-
     for(i = 0; i < nb_threads; i++)
     {
         threads[i] = std::thread(ping, i, rounds, sleep_time, std::ref(ping_mutex), std::ref(ping_queue), std::ref(ping_id_queue));
@@ -118,11 +140,14 @@ int main(int argc, char *argv[])
         //wait for a ping
         while(ping_queue.empty() && ping_id_queue.empty())
         {
-            std::cout << "";
+            // wait for 1 ns
+            std::this_thread::sleep_for(std::chrono::nanoseconds(1));
         }
         // get the ping
         id = ping_id_queue.front();
         actual[id] = ping_queue.front();
+
+        // remove the ping from the queue
         ping_mutex.lock();
         ping_queue.pop();
         ping_id_queue.pop();
@@ -169,9 +194,16 @@ int main(int argc, char *argv[])
             }
             avg[i] += diff;
 
+            // fill the standard deviation array
+            stdev[i] += static_cast<double>(diff) * static_cast<double>(diff);
 
         }
+        // calculate the average over the rounds
         avg[i] /= rounds;
+
+        // calculate the stdev
+        stdev[i] = sqrt(stdev[i] / static_cast<double>(rounds));
+
 
         // calculate max in percent
         percent[i] = (static_cast<double>(max[i]) * 100.0) / static_cast<double>(sleep_time);
@@ -198,6 +230,7 @@ int main(int argc, char *argv[])
     delete[] min;
     delete[] max;
     delete[] avg;
+    delete[] stdev;
     delete[] percent;
     
     return 0;
