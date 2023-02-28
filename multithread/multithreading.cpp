@@ -55,7 +55,6 @@ void *ping(void* )
         // add the ping to the ping time array
         ping_mutex.lock();
         ping_queue.push(end);
-        // print ping_queue.empty
         ping_mutex.unlock();
     }
 
