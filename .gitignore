@@ -242,6 +242,6 @@ poetry.toml
 # ruff
 .ruff_cache/
 
-.vscode/
+.vscode/*
 
 # End of https://www.toptal.com/developers/gitignore/api/c++,c,python
