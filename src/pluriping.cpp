@@ -154,21 +154,23 @@ int main(int argc, char *argv[])
             // wait for 1 ns
             std::this_thread::sleep_for(std::chrono::nanoseconds(1));
         }
-        // get the ping
-        id = ping_id_queue.front();
-        actual[id] = ping_queue.front();
 
+        // get the ping
         // remove the ping from the queue
         ping_mutex.lock();
+        id = ping_id_queue.front();
+        actual[id] = ping_queue.front();
         ping_queue.pop();
         ping_id_queue.pop();
         ping_mutex.unlock();
-
+            
         // print the ping time
         if(last[id] != std::chrono::time_point<std::chrono::high_resolution_clock>() && actual[id] != std::chrono::time_point<std::chrono::high_resolution_clock>())
         {
+            // calculate the ping time
             diff = std::chrono::duration_cast<std::chrono::nanoseconds>(actual[id] - last[id]).count();
             diff -= sleep_time;
+
             std::cout << "Ping " << id << " latency : " << diff << " ns\n";
 
             // add the ping to the ping time array
@@ -186,8 +188,7 @@ int main(int argc, char *argv[])
     {
         // calculate the min, max and average ping time
         avg[i] = 0;
-        do
-        {
+         while (!diff_queues[i].empty()){
             // get the ping time
             diff = diff_queues[i].front();
             diff_queues[i].pop();
@@ -206,7 +207,7 @@ int main(int argc, char *argv[])
             // fill the standard deviation array
             stdev[i] += static_cast<double>(diff) * static_cast<double>(diff);
 
-        } while (!diff_queues[i].empty());
+        }
         // calculate the average over the rounds
         avg[i] /= rounds;
 
@@ -268,7 +269,7 @@ void ping(unsigned int tid, unsigned int rounds, long long unsigned int sleep_ti
 
             end = std::chrono::high_resolution_clock::now();
 
-        } while (static_cast<long long unsigned int>(std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count()) < sleep_time);
+        } while (std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() < sleep_time);
 
         // add the ping to the ping time array
         ping_mutex.lock();
