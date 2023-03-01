@@ -121,6 +121,17 @@ int main(int argc, char *argv[])
     double *stdev = new double[nb_threads];
     double *percent = new double[nb_threads];
 
+    // fill the array with the default value
+    for(i = 0; i < nb_threads; i++)
+    {
+        // fil min with the max value of an unsigned long long int
+        min[i] = std::numeric_limits<long long unsigned int>::max();
+        max[i] = std::numeric_limits<long long unsigned int>::min();
+        avg[i] = 0;
+        stdev[i] = 0;
+        percent[i] = 0;
+    }
+
     
 
     // start the threads
@@ -156,7 +167,7 @@ int main(int argc, char *argv[])
         // print the ping time
         if(last[id] != std::chrono::time_point<std::chrono::high_resolution_clock>() && actual[id] != std::chrono::time_point<std::chrono::high_resolution_clock>())
         {
-            diff = static_cast<unsigned>(std::chrono::duration_cast<std::chrono::nanoseconds>(actual[id] - last[id]).count());
+            diff = std::chrono::duration_cast<std::chrono::nanoseconds>(actual[id] - last[id]).count();
             diff -= sleep_time;
             std::cout << "Ping " << id << " latency : " << diff << " ns\n";
 
@@ -174,10 +185,8 @@ int main(int argc, char *argv[])
     for(i = 0; i < nb_threads; i++)
     {
         // calculate the min, max and average ping time
-        min[i] = diff_queues[i].front();
-        max[i] = 0;
         avg[i] = 0;
-        for(j = 0; j < rounds; j++)
+        do
         {
             // get the ping time
             diff = diff_queues[i].front();
@@ -197,7 +206,7 @@ int main(int argc, char *argv[])
             // fill the standard deviation array
             stdev[i] += static_cast<double>(diff) * static_cast<double>(diff);
 
-        }
+        } while (!diff_queues[i].empty());
         // calculate the average over the rounds
         avg[i] /= rounds;
 
@@ -210,8 +219,8 @@ int main(int argc, char *argv[])
 
         // print the min, max and average ping time
         std::cout << "\n--- Thread " << i << " statistics ---\n";
-        std::cout << "Min / max / avg (ns)\n";
-        std::cout << min[i] << " / " << max[i] << " / " << avg[i] << "\n";
+        std::cout << "Min / max / avg / stdev (ns)\n";
+        std::cout << min[i] << " / " << max[i] << " / " << avg[i] << " / " << stdev[i] << "\n";
         std::cout << std::fixed;
         std::cout << std::setprecision(6);
         std::cout << "Max in percent : " << percent[i] << "%\n";     
@@ -250,7 +259,7 @@ void ping(unsigned int tid, unsigned int rounds, long long unsigned int sleep_ti
     ping_mutex.unlock();
 
     // loop until the number of ping is reached
-    for (i = 0; i < rounds+1; i++)
+    for (i = 0; i < rounds; i++)
     {
         // get the start time
         start = std::chrono::high_resolution_clock::now();
