@@ -10,6 +10,10 @@
             "request": "launch",
             "program": "${fileDirname}\\${fileBasenameNoExtension}.exe",
             "args": [
+                "-t",
+                "100000000",
+                "-r",
+                "600",
                 "-n",
                 "2",
             
